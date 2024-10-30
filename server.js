@@ -30,11 +30,11 @@ wsServer.on("connection", (ws, req) => {
 });
 
 // HTTP stuff
-app.use("/image", express.static("image"));
-app.use("/js", express.static("js"));
-app.get("/audio", (req, res) =>
-  res.sendFile(path.resolve(__dirname, "./audio_client.html"))
-);
-app.listen(HTTP_PORT, () =>
-  console.log(`HTTP server listening at http://localhost:${HTTP_PORT}`)
+// app.use("/image", express.static("image"));
+// app.use("/js", express.static("js"));
+// app.get("/audio", (req, res) =>
+//   res.sendFile(path.resolve(__dirname, "./audio_client.html"))
+// );
+// app.listen(HTTP_PORT, () =>
+//   console.log(`HTTP server listening at http://localhost:${HTTP_PORT}`)
 );
