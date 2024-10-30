@@ -5,7 +5,7 @@
   Created by Eric N. (ThatProject)
 */
 /////////////////////////////////////////////////////////////////
-/*
+
 const path = require("path");
 const express = require("express");
 const WebSocket = require("ws");
@@ -14,22 +14,22 @@ const app = express();
 const WS_PORT = process.env.WS_PORT || 8080 ;
 const HTTP_PORT = process.env.HTTP_PORT || 8000;
 
-const wsServer = new WebSocket.Server({ port: WS_PORT }, () =>
+const wss = new WebSocket.Server({ port: WS_PORT }, () =>
   console.log(`WS server is listening at ws://localhost:${WS_PORT}`)
 );
 
 // array of connected websocket clients
 let connectedClients = [];
 
-wsServer.on("connection", (ws, req) => {
+wss.on("connection", (wss, req) => {
   console.log("Connected");
   // add new connected client
   connectedClients.push(ws);
   // listen for messages from the streamer, the clients will not send anything so we don't need to filter
-  ws.on("message", (data) => {
+  wss.on("message", (data) => {
     connectedClients.forEach((ws, i) => {
-      if (ws.readyState === ws.OPEN) {
-        ws.send(data);
+      if (wss.readyState === wss.OPEN) {
+        wss.send(data);
       } else {
         connectedClients.splice(i, 1);
       }
@@ -46,23 +46,4 @@ app.get("/audio", (req, res) =>
 app.listen(HTTP_PORT, () =>
   console.log(`HTTP server listening at http://localhost:${HTTP_PORT}`)
 );
-*/
-const express = require('express');
-const socketIO = require('socket.io');
-const PORT = process.env.PORT || 3000;
-const INDEX = '/index.html';
-const server = express()
-  .use((req, res) => res.sendFile(INDEX, { root: __dirname }))
-  .listen(PORT, () => console.log(`Listening on ${PORT}`));
-const io = require("socket.io")(server,{
-  cors: {
-    origins: "*:*",
-    methods: ["GET", "POST"]
-  }
-});
-io.on('connection', (socket) => {
-  socket.on('disconnect', () => console.log('Client disconnected'));
-  socket.on('messaged', (args) => {
-    io.emit('message', args);
-    console.log(args)
-  });
+
