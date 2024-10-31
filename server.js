@@ -12,7 +12,7 @@ const WebSocket = require("ws");
 const app = express();
 
 const WS_PORT = process.env.WS_PORT || 10000;
-const HTTP_PORT = process.env.HTTP_PORT || 10001 ;
+// const HTTP_PORT = process.env.HTTP_PORT || 10001 ;
 
 const wsServer = new WebSocket.Server({ port: WS_PORT }, () =>
   console.log(`WS server is listening at ws://localhost:${WS_PORT}`)
@@ -38,11 +38,11 @@ wsServer.on("connection", (ws, req) => {
 });
 
 // HTTP stuff
-app.use("/image", express.static("image"));
-app.use("/js", express.static("js"));
-app.get("/audio", (req, res) =>
-  res.sendFile(path.resolve(__dirname, "./audio_client.html"))
-);
-app.listen(HTTP_PORT, () =>
-  console.log(`HTTP server listening at http://localhost:${HTTP_PORT}`)
-);
+// app.use("/image", express.static("image"));
+// app.use("/js", express.static("js"));
+// app.get("/audio", (req, res) =>
+//   res.sendFile(path.resolve(__dirname, "./audio_client.html"))
+// );
+// app.listen(HTTP_PORT, () =>
+//   console.log(`HTTP server listening at http://localhost:${HTTP_PORT}`)
+// );
