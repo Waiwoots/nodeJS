@@ -1,0 +1,22 @@
+{
+  "name": "coap-nodejs",
+  "version": "1.0.0",
+  "main": "coap.js",
+    "scripts": {
+    "start": "node coap.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "description": "",
+  "dependencies": {
+    "coap": "^0.26.0",
+    "concurrently": "^9.2.1",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "cors": "^2.8.5",
+    "nodemon": "^3.1.10"
+  }
+}
