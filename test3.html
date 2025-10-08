@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drag and Drop Widgets with Reset Button</title>
+<style>
+  /* CSS เหมือนเดิม */
+  body {
+    background-color: #222;
+    color: #eee;
+  }
+
+  .widget {
+    position: absolute;
+    width: 250px;
+    background-color: #333;
+    border: 1px solid #0f0;
+    box-shadow: 0 4px 8px rgba(0,255,0,0.2);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: grab;
+    transition: box-shadow 0.2s;
+  }
+
+  .widget-header {
+    background-color: #1a1a1a;
+    padding: 10px;
+    cursor: grab;
+    border-bottom: 1px solid #0f0;
+    font-weight: bold;
+    user-select: none;
+    color: #0f0;
+  }
+
+  .widget-content {
+    padding: 15px;
+    font-family: Arial, sans-serif;
+    color: #eee;
+  }
+
+  .widget.dragging {
+    cursor: grabbing;
+    box-shadow: 0 8px 16px rgba(0,255,0,0.4);
+  }
+
+  #digital-clock {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 2.8em;
+    text-align: center;
+    color: #0f0;
+    text-shadow: 0 0 5px #0f0, 0 0 10px #0f0;
+    padding: 10px 0;
+    background-color: #000;
+    border-radius: 5px;
+    margin: 5px 0;
+  }
+  
+  .gauge-container {
+    text-align: center;
+    padding: 10px;
+  }
+
+  .gauge-svg {
+    transform: rotate(180deg);
+  }
+
+  .gauge-bg {
+    fill: none;
+    stroke: #444;
+    stroke-width: 10;
+  }
+
+  .gauge-fill {
+    fill: none;
+    stroke: #0f0;
+    stroke-width: 10;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.5s ease-in-out;
+  }
+
+  #gauge-text {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #0f0;
+    text-shadow: 0 0 5px #0f0;
+    margin-top: 10px;
+  }
+  
+  /* CSS สำหรับปุ่มรีเซ็ต */
+  #reset-button {
+    position: fixed; /* ให้อยู่กับที่บนหน้าจอ */
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #444;
+    color: #0f0;
+    border: 1px solid #0f0;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,255,0,0.2);
+    transition: background-color 0.3s;
+  }
+
+  #reset-button:hover {
+    background-color: #555;
+  }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<button id="reset-button">รีเซ็ตตำแหน่ง</button>
+
+<div class="widget" id="widget1">
+  <div class="widget-header">
+    นาฬิกาดิจิตอล
+  </div>
+  <div class="widget-content">
+    <div id="digital-clock"></div>
+  </div>
+</div>
+
+<div class="widget" id="widget2">
+  <div class="widget-header">
+    Widget 2
+  </div>
+  <div class="widget-content">
+    นี่คือเนื้อหาของวิดเจ็ตชิ้นที่ 2
+  </div>
+</div>
+
+<div class="widget" id="widget3">
+  <div class="widget-header">
+    เกจมาตรวัด
+  </div>
+  <div class="widget-content">
+    <div class="gauge-container">
+      <svg class="gauge-svg" width="100%" height="100%" viewBox="0 0 200 100">
+        <path class="gauge-bg" d="M10 100 A90 90 0 0 1 190 100"></path>
+        <path class="gauge-fill" d="M10 100 A90 90 0 0 1 190 100"></path>
+      </svg>
+    </div>
+    <div id="gauge-text">--</div>
+  </div>
+</div>
+
+<div class="widget" id="widget4">
+  <div class="widget-header">
+    LED
+  </div>
+  <div class="widget-content" style="text-align:center;">
+    <div id="led-indicator" style="width:60px;height:60px;margin:auto;border-radius:50%;background:#222;border:3px solid #0f0;box-shadow:0 0 10px #0f0;">
+      <!-- LED circle -->
+    </div>
+    <div id="led-status" style="margin-top:10px;color:#0f0;font-weight:bold;">รอข้อมูล...</div>
+  </div>
+</div>
+
+<div class="widget" id="widget5">
+  <div class="widget-header">
+    LED Control
+  </div>
+  <div class="widget-content" style="text-align:center;">
+    <button id="led-on-btn" style="padding:10px 20px;margin:10px;font-size:16px;background:#0f0;color:#222;border:none;border-radius:5px;cursor:pointer;">เปิด</button>
+    <button id="led-off-btn" style="padding:10px 20px;margin:10px;font-size:16px;background:#444;color:#0f0;border:1px solid #0f0;border-radius:5px;cursor:pointer;">ปิด</button>
+    <div id="led-control-status" style="margin-top:10px;color:#0f0;font-weight:bold;">รอควบคุม...</div>
+  </div>
+</div>
+
+
+
+<script>
+    // LED Control widget
+    const ledOnBtn = document.getElementById('led-on-btn');
+    const ledOffBtn = document.getElementById('led-off-btn');
+    const ledControlStatus = document.getElementById('led-control-status');
+
+    // ฟังก์ชันสำหรับส่งคำสั่ง POST ไปยัง Server
+    function updateLED(stateValue) {
+        // แสดงสถานะการส่งคำสั่ง
+        ledControlStatus.textContent = "กำลังส่งคำสั่ง...";
+
+        // fetch('http://localhost:8080/events/control/led', {
+         fetch('https://nodejs-websocket-ipke.onrender.com/events/control/led', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json' // ระบุว่าข้อมูลที่ส่งเป็น JSON
+            },
+            body: JSON.stringify({ "led" : stateValue }) // ข้อมูลที่จะส่ง
+        })
+       
+        .then(res => res.json())
+        .then(status => {
+            if (status.status === 'success') {
+                // แสดงสถานะเมื่อคำสั่งสำเร็จ
+                ledControlStatus.textContent = `สั่ง${stateValue === 1 ? 'เปิด' : 'ปิด'} LED แล้ว`;
+            } else {
+                // แสดงข้อผิดพลาดจากเซิร์ฟเวอร์
+                ledControlStatus.textContent = "เกิดข้อผิดพลาด: " + (status.message || "");
+                console.error('Server error:', status);
+                console.log(status);
+            }
+        })
+        .catch(error => {
+            // แสดงข้อผิดพลาดการเชื่อมต่อ
+            console.error('Fetch error:', error);
+            ledControlStatus.textContent = "เชื่อมต่อไม่ได้";
+        });
+    }
+
+    // เพิ่ม Event Listener ให้ปุ่ม "เปิด"
+    ledOnBtn.addEventListener('click', () => {
+        updateLED(1); // ส่งค่า 1 (เปิด)
+    });
+
+    // เพิ่ม Event Listener ให้ปุ่ม "ปิด"
+    ledOffBtn.addEventListener('click', () => {
+        updateLED(0); // ส่งค่า 0 (ปิด)
+    });
+ </script>
+
+<script>
+  // รับสถานะ LED ผ่าน SSE
+  if (window.EventSource) {
+    // const sseLed = new EventSource('http://localhost:8080/events/led');
+    const sseLed = new EventSource('https://nodejs-websocket-ipke.onrender.com/events/led');
+    sseLed.onmessage = function(event) {
+      // ค่าที่ได้จะเป็น "led :1" หรือ "led : 0"
+      const match = event.data.match(/led\s*:\s*(\d)/);
+      if (match) {
+        if (match[1] === "1") {
+          ledControlStatus.textContent = "LED ติด";
+           ledControlStatus.style.color = "#0f0"; // เปลี่ยนสีตัวอักษรเป็น เขียว
+          console.log("LED is ON");
+        } else if (match[1] === "0") {
+          ledControlStatus.textContent = "LED ดับ";
+          ledControlStatus.style.color = "#888"; // เปลี่ยนสีตัวอักษรเป็นเทา
+          console.log("LED is OFF");
+        } else {
+          ledControlStatus.textContent = "สถานะ LED ไม่ถูกต้อง";
+          console.error("Invalid LED status received:", event.data);
+        }
+      } else {
+        ledControlStatus.textContent = "ข้อมูล SSE ไม่ถูกต้อง";
+        console.error("Unexpected SSE data format:", event.data);
+      }
+    };
+    sseLed.onerror = function() {
+      ledControlStatus.textContent = "เชื่อมต่อ SSE ไม่สำเร็จ";
+      console.error("SSE connection error for LED control" );
+    };
+  } else {
+    ledControlStatus.textContent = "เบราว์เซอร์ไม่รองรับ SSE";
+  }
+</script>
+
+
+<script>
+  // SSE สำหรับ LED widget
+  const ledIndicator = document.getElementById('led-indicator');
+  const ledStatus = document.getElementById('led-status');
+  if (window.EventSource) {
+    // const sse = new EventSource('http://localhost:8080/events');
+     const sse = new EventSource('https://nodejs-websocket-ipke.onrender.com/events');
+    sse.onmessage = function(event) {
+      if (event.data === "1") {
+        ledIndicator.style.background = "#0f0";
+        ledIndicator.style.boxShadow = "0 0 20px #0f0, 0 0 40px #0f0";
+        ledStatus.textContent = "LED ติด";
+      } else if (event.data === "0") {
+        ledIndicator.style.background = "#222";
+        ledIndicator.style.boxShadow = "0 0 10px #0f0";
+        ledStatus.textContent = "LED ดับ";
+      } else {
+        ledStatus.textContent = "ข้อมูลไม่ถูกต้อง";
+      }
+    };
+    sse.onerror = function() {
+      ledStatus.textContent = "เชื่อมต่อ SSE ไม่สำเร็จ";
+    };
+  } else {
+    ledStatus.textContent = "เบราว์เซอร์ไม่รองรับ SSE";
+  }
+</script>
+
+<script>
+  // JavaScript สำหรับการทำงาน drag and drop และบันทึกตำแหน่ง
+  document.addEventListener('DOMContentLoaded', () => {
+    // โค้ดสำหรับนาฬิกาดิจิตอล (เหมือนเดิม)
+    const clockElement = document.getElementById('digital-clock');
+    function updateClock() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // โค้ดสำหรับเกจมาตรวัด (เหมือนเดิม)
+    const gaugeFill = document.querySelector('.gauge-fill');
+    const gaugeText = document.getElementById('gauge-text');
+    const circumference = 282.7433388230814;
+
+    function updateGauge() {
+      const randomNumber = Math.floor(Math.random() * 101);
+      const dashoffset = circumference * (1 - randomNumber / 100);
+      
+      gaugeFill.style.strokeDashoffset = dashoffset;
+      gaugeText.textContent = `${randomNumber}%`;
+    }
+    
+    gaugeFill.style.strokeDasharray = `${circumference} ${circumference}`;
+    
+    setInterval(updateGauge, 2000);
+    updateGauge();
+
+    // โค้ดสำหรับปุ่มรีเซ็ต (ใหม่)
+    const resetButton = document.getElementById('reset-button');
+    resetButton.addEventListener('click', () => {
+      // ลบข้อมูลตำแหน่งทั้งหมดใน localStorage
+      localStorage.clear();
+      // รีโหลดหน้าเว็บเพื่อให้วิดเจ็ตแสดงผลที่ตำแหน่งเริ่มต้น
+      window.location.reload();
+    });
+
+    // โค้ดสำหรับลากและวาง (เหมือนเดิม)
+    document.querySelectorAll('.widget').forEach(widget => {
+      const widgetId = widget.id;
+      const savedPosition = localStorage.getItem(`widgetPosition_${widgetId}`);
+      if (savedPosition) {
+        const { top, left } = JSON.parse(savedPosition);
+        widget.style.top = `${top}px`;
+        widget.style.left = `${left}px`;
+      } else {
+        if (widgetId === 'widget1') {
+          widget.style.top = '50px';
+          widget.style.left = '50px';
+        } else if (widgetId === 'widget2') {
+          widget.style.top = '150px';
+          widget.style.left = '300px';
+        } else if (widgetId === 'widget3') {
+          widget.style.top = '250px';
+          widget.style.left = '550px';
+        }
+      }
+
+      const header = widget.querySelector('.widget-header');
+      let isDragging = false;
+      let offsetX, offsetY;
+      header.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        widget.classList.add('dragging');
+        offsetX = e.clientX - widget.getBoundingClientRect().left;
+        offsetY = e.clientY - widget.getBoundingClientRect().top;
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const newX = e.clientX - offsetX;
+        const newY = e.clientY - offsetY;
+        widget.style.left = `${newX}px`;
+        widget.style.top = `${newY}px`;
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          widget.classList.remove('dragging');
+          const newPosition = {
+            top: widget.getBoundingClientRect().top + window.scrollY,
+            left: widget.getBoundingClientRect().left + window.scrollX
+          };
+          localStorage.setItem(`widgetPosition_${widgetId}`, JSON.stringify(newPosition));
+        }
+      });
+    });
+  });
+</script>
+
+</body>
+</html>
