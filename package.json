@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "coap.js",
     "scripts": {
-    "test": "concurrently \"node coap.js\" \"nodemon index.js\""
+    "start": "concurrently \"node coap.js\""
   },
   "keywords": [],
   "author": "",
