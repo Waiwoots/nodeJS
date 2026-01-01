@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -286,7 +287,7 @@
   }
 </script>
 
-<script>
+<!-- <script>
   // JavaScript สำหรับการทำงาน drag and drop และบันทึกตำแหน่ง
   document.addEventListener('DOMContentLoaded', () => {
     // โค้ดสำหรับนาฬิกาดิจิตอล (เหมือนเดิม)
@@ -378,6 +379,116 @@
           localStorage.setItem(`widgetPosition_${widgetId}`, JSON.stringify(newPosition));
         }
       });
+    });
+  });
+</script> -->
+<script>
+  // JavaScript สำหรับการทำงาน drag and drop และบันทึกตำแหน่ง
+  document.addEventListener('DOMContentLoaded', () => {
+    // โค้ดสำหรับนาฬิกาดิจิตอล (เหมือนเดิม)
+    const clockElement = document.getElementById('digital-clock');
+    function updateClock() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // โค้ดสำหรับเกจมาตรวัด (เหมือนเดิม)
+    const gaugeFill = document.querySelector('.gauge-fill');
+    const gaugeText = document.getElementById('gauge-text');
+    const circumference = 282.7433388230814;
+
+    function updateGauge() {
+      const randomNumber = Math.floor(Math.random() * 101);
+      const dashoffset = circumference * (1 - randomNumber / 100);
+      
+      gaugeFill.style.strokeDashoffset = dashoffset;
+      gaugeText.textContent = `${randomNumber}%`;
+    }
+    
+    gaugeFill.style.strokeDasharray = `${circumference} ${circumference}`;
+    
+    setInterval(updateGauge, 2000);
+    updateGauge();
+
+    // โค้ดสำหรับปุ่มรีเซ็ต (เหมือนเดิม)
+    const resetButton = document.getElementById('reset-button');
+    resetButton.addEventListener('click', () => {
+      localStorage.clear();
+      window.location.reload();
+    });
+
+    // โค้ดสำหรับลากและวาง (ปรับปรุง)
+    document.querySelectorAll('.widget').forEach(widget => {
+      const widgetId = widget.id;
+      const savedPosition = localStorage.getItem(`widgetPosition_${widgetId}`);
+      if (savedPosition) {
+        const { top, left } = JSON.parse(savedPosition);
+        widget.style.top = `${top}px`;
+        widget.style.left = `${left}px`;
+      } else {
+        if (widgetId === 'widget1') {
+          widget.style.top = '50px';
+          widget.style.left = '50px';
+        } else if (widgetId === 'widget2') {
+          widget.style.top = '150px';
+          widget.style.left = '300px';
+        } else if (widgetId === 'widget3') {
+          widget.style.top = '250px';
+          widget.style.left = '550px';
+        }
+      }
+
+      const header = widget.querySelector('.widget-header');
+      let isDragging = false;
+      let offsetX, offsetY;
+      
+      // ฟังก์ชันสำหรับเริ่มลาก
+      const startDrag = (e) => {
+        isDragging = true;
+        widget.classList.add('dragging');
+        const touch = e.touches ? e.touches[0] : e;
+        offsetX = touch.clientX - widget.getBoundingClientRect().left;
+        offsetY = touch.clientY - widget.getBoundingClientRect().top;
+      };
+      
+      // ฟังก์ชันสำหรับการลาก
+      const doDrag = (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const touch = e.touches ? e.touches[0] : e;
+        const newX = touch.clientX - offsetX;
+        const newY = touch.clientY - offsetY;
+        widget.style.left = `${newX}px`;
+        widget.style.top = `${newY}px`;
+      };
+      
+      // ฟังก์ชันสำหรับหยุดลาก
+      const stopDrag = () => {
+        if (isDragging) {
+          isDragging = false;
+          widget.classList.remove('dragging');
+          const newPosition = {
+            top: widget.getBoundingClientRect().top + window.scrollY,
+            left: widget.getBoundingClientRect().left + window.scrollX
+          };
+          localStorage.setItem(`widgetPosition_${widgetId}`, JSON.stringify(newPosition));
+        }
+      };
+      
+      // เพิ่ม Event Listener สำหรับทั้ง Mouse และ Touch
+      header.addEventListener('mousedown', startDrag);
+      header.addEventListener('touchstart', startDrag);
+      
+      document.addEventListener('mousemove', doDrag);
+      document.addEventListener('touchmove', doDrag);
+      
+      document.addEventListener('mouseup', stopDrag);
+      document.addEventListener('touchend', stopDrag);
     });
   });
 </script>
