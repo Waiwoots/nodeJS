@@ -1,0 +1,8 @@
+{
+  "name": "Smart Meter Dashboard",
+  "short_name": "Smart Meter",
+  "start_url": "/smart-meter",
+  "display": "standalone",
+  "background_color": "#07111f",
+  "theme_color": "#07111f"
+}

@@ -154,5 +154,11 @@ app.get('/events', (req, res) => {
 app.get('/test3.html', (req, res) => res.sendFile('test3.html', { root: __dirname }))
 app.get('/dashboard', (req, res) => res.sendFile('dashboard.html', { root: __dirname }))
 app.get('/smart-meter', (req, res) => res.sendFile('smart-meter.html', { root: __dirname }))
+app.get('/manifest.webmanifest', (req, res) => {
+    res.type('application/manifest+json').sendFile('manifest.webmanifest', { root: __dirname })
+})
+app.get('/service-worker.js', (req, res) => {
+    res.set('Cache-Control', 'no-cache').sendFile('service-worker.js', { root: __dirname })
+})
 
 app.listen(port, () => console.log(`HTTP/SSE Server started on port ${port}`))

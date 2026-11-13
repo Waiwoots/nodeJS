@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#07111f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.webmanifest">
     <title>Smart Meter Dashboard</title>
     <style>
         :root {
@@ -335,7 +338,24 @@
         let exceededSince = null;
         let alertSent = false;
         let notificationsEnabled = false;
+        let notificationRegistration = null;
         let dragScale = null;
+
+        function isIOSDevice() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent)
+                || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+
+        function isStandaloneApp() {
+            return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+        }
+
+        async function registerNotificationServiceWorker() {
+            if (!('serviceWorker' in navigator) || !window.isSecureContext) {
+                throw new Error('Secure context and service worker support are required');
+            }
+            return navigator.serviceWorker.register('/service-worker.js');
+        }
 
         function setAlertStatus(message, state) {
             alertStatus.textContent = message;
@@ -470,15 +490,15 @@
             if (elapsed >= required && !alertSent) {
                 const message = `กำลังไฟ ${formatValue(power)} kW เกินเกณฑ์ ${formatValue(threshold, 1)} kW ต่อเนื่องครบ ${formatValue(duration, 1)} นาที`;
                 setAlertStatus(message, 'alert');
-                if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
+                if (notificationsEnabled && notificationRegistration && 'Notification' in window && Notification.permission === 'granted') {
                     alertSent = true;
-                    try {
-                        new Notification('แจ้งเตือนการใช้ไฟฟ้าสูง', { body: message });
-                    } catch (error) {
-                        alertSent = false;
+                    notificationRegistration.showNotification('แจ้งเตือนการใช้ไฟฟ้าสูง', {
+                        body: message,
+                        tag: 'smart-meter-power-alert'
+                    }).catch(error => {
                         console.error('Unable to show power alert notification:', error);
                         setAlertStatus(`${message} (แสดงการแจ้งเตือนของเบราว์เซอร์ไม่สำเร็จ)`, 'alert');
-                    }
+                    });
                 }
                 return;
             }
@@ -574,25 +594,42 @@
                 setAlertStatus('ปิดการแจ้งเตือนแล้ว', 'normal');
                 return;
             }
+            if (!window.isSecureContext || !('serviceWorker' in navigator)) {
+                setAlertStatus('การแจ้งเตือนต้องเปิดผ่าน HTTPS และเบราว์เซอร์ที่รองรับ Service Worker', 'normal');
+                return;
+            }
+            if (isIOSDevice() && !isStandaloneApp()) {
+                setAlertStatus('บน iPad/iPhone ให้เปิดหน้านี้ด้วย Safari แล้วเลือก แชร์ > เพิ่มไปยังหน้าจอโฮม จากนั้นเปิดจากไอคอนก่อนเปิดการแจ้งเตือน', 'normal');
+                return;
+            }
             if (!('Notification' in window)) {
                 setAlertStatus('เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน — สถานะเตือนจะแสดงบนหน้านี้', 'normal');
                 return;
             }
+            if (Notification.permission === 'denied') {
+                setAlertStatus('การแจ้งเตือนถูกบล็อกไว้ กรุณาอนุญาตในการตั้งค่าเว็บไซต์ของเบราว์เซอร์', 'normal');
+                return;
+            }
             try {
-                const permission = Notification.permission === 'granted'
-                    ? 'granted'
-                    : await Notification.requestPermission();
+                const permissionRequest = Notification.permission === 'granted'
+                    ? Promise.resolve('granted')
+                    : Notification.requestPermission();
+                const [permission, registration] = await Promise.all([
+                    permissionRequest,
+                    registerNotificationServiceWorker()
+                ]);
                 if (permission !== 'granted') {
                     setAlertStatus('ไม่ได้รับอนุญาตการแจ้งเตือน — สถานะเตือนจะแสดงบนหน้านี้', 'normal');
                     return;
                 }
+                notificationRegistration = registration;
                 notificationsEnabled = true;
                 updateNotificationToggle();
                 alertSent = false;
                 checkPowerAlert();
             } catch (error) {
-                console.error('Unable to request notification permission:', error);
-                setAlertStatus('ขอสิทธิ์แจ้งเตือนไม่สำเร็จ — สถานะเตือนจะแสดงบนหน้านี้', 'normal');
+                console.error('Unable to enable browser notifications:', error);
+                setAlertStatus('เปิดการแจ้งเตือนไม่สำเร็จ ตรวจสอบ HTTPS และการตั้งค่าเว็บไซต์ของเบราว์เซอร์', 'normal');
             }
         });
         updateNotificationToggle();
