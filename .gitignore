@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+test3.html
+สุโขทัย.jpg
+sla.html
+server2.js
+server3.js
+Onserver.html
+dockerfile

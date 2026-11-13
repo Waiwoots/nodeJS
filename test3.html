@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -107,6 +108,15 @@
   #reset-button:hover {
     background-color: #555;
   }
+
+  /* บังคับสีส้มเมื่อมีการเชื่อมต่อ */
+.widget-header.connected {
+  background-color: #ff8c00 !important; /* สีส้ม */
+  color: white !important;
+  border-bottom: 1px solid #ff4500 !important;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
@@ -170,7 +180,22 @@
   </div>
 </div>
 
-
+<div class="widget" id="widget6">
+  <div class="widget-header">
+    Timer Widget
+  </div>
+  <div class="widget-content" style="text-align:center;">
+    <div style="font-size: 1.2em; margin-bottom: 10px; color: #0f0;">ตั้งเวลา (0-60 วินาที)</div>
+    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+      <button id="timer-minus" style="width:40px;height:40px;background:#444;color:#0f0;border:1px solid #0f0;border-radius:5px;cursor:pointer;font-size:20px;font-weight:bold;">-</button>
+      <input type="number" id="timer-input" value="10" min="0" max="60" style="width: 70px; height: 35px; background: #000; color: #0f0; border: 1px solid #0f0; border-radius: 5px; text-align: center; font-size: 20px; font-family: 'Share Tech Mono', monospace;">
+      <button id="timer-plus" style="width:40px;height:40px;background:#444;color:#0f0;border:1px solid #0f0;border-radius:5px;cursor:pointer;font-size:20px;font-weight:bold;">+</button>
+    </div>
+    <div id="timer-display" style="margin-top: 15px; font-size: 2.5em; font-family: 'Share Tech Mono', monospace; color: #0f0; text-shadow: 0 0 10px #0f0;">
+      00:10
+    </div>
+  </div>
+</div>
 
 <script>
     // LED Control widget
@@ -381,7 +406,7 @@
     });
   });
 </script> -->
-<script>
+<!-- <script>
   // JavaScript สำหรับการทำงาน drag and drop และบันทึกตำแหน่ง
   document.addEventListener('DOMContentLoaded', () => {
     // โค้ดสำหรับนาฬิกาดิจิตอล (เหมือนเดิม)
@@ -490,7 +515,298 @@
       document.addEventListener('touchend', stopDrag);
     });
   });
+</script> -->
+
+<script>
+
+  
+ document.addEventListener('DOMContentLoaded', () => {
+// --- Timer Logic ---
+const tInput = document.getElementById('timer-input');
+const tDisplay = document.getElementById('timer-display');
+const btnP = document.getElementById('timer-plus');
+const btnM = document.getElementById('timer-minus');
+
+function refreshTimer() {
+    let val = parseInt(tInput.value) || 0;
+    if (val > 60) val = 60;
+    if (val < 0) val = 0;
+    tInput.value = val;
+    tDisplay.textContent = `00:${String(val).padStart(2, '0')}`;
+    updateConnectionsJSON(); // อัปเดต JSON ทุกครั้งที่เลขเปลี่ยน
+}
+
+btnP.addEventListener('click', () => { tInput.value = parseInt(tInput.value) + 1; refreshTimer(); });
+btnM.addEventListener('click', () => { tInput.value = parseInt(tInput.value) - 1; refreshTimer(); });
+tInput.addEventListener('input', refreshTimer);
+
+// ตั้งตำแหน่งเริ่มต้นให้ widget 6 (ถ้ายังไม่มีใน storage)
+const w6 = document.getElementById('widget6');
+if (!localStorage.getItem('widgetPosition_widget6')) {
+    w6.style.top = '450px';
+    w6.style.left = '300px';
+}
+updateConnectionsJSON(); // เรียกครั้งแรกเพื่อให้ JSON แสดงผล
+
+
+// ฟังก์ชันสำหรับสแกนหาความสัมพันธ์และแสดงผล JSON
+   function updateConnectionsJSON() {
+        const widgetsList = document.querySelectorAll('.widget');
+        let connections = {};
+
+        widgetsList.forEach(w => {
+            const id = w.id;
+            const headerText = w.querySelector('.widget-header').innerText.trim();
+            const rect = w.getBoundingClientRect();
+            
+            // สร้าง Object พื้นฐาน
+            connections[id] = {
+                name: headerText,
+                connectedUnder: "none",
+                value: null // พื้นฐานเป็น null
+            };
+
+            // --- ส่วนที่เพิ่ม: ดึงค่าเฉพาะของแต่ละวิดเจ็ตมาใส่ JSON ---
+            if (id === 'widget6') { // ถ้าเป็น Timer
+                connections[id].value = document.getElementById('timer-input').value + " sec";
+            } else if (id === 'widget3') { // ถ้าเป็น Gauge
+                connections[id].value = document.getElementById('gauge-text').innerText;
+            } else if (id === 'widget1') { // ถ้าเป็น Clock
+                connections[id].value = document.getElementById('digital-clock').innerText;
+            }
+
+            // ตรวจสอบความสัมพันธ์ (การเชื่อมต่อใต้ตัวอื่น)
+            widgetsList.forEach(other => {
+                if (w === other) return;
+                const otherRect = other.getBoundingClientRect();
+                const isAttached = Math.abs(rect.top - otherRect.bottom) < 5 && 
+                                   Math.abs(rect.left - otherRect.left) < 5;
+                
+                if (isAttached) {
+                    connections[id].connectedUnder = other.id;
+                }
+            });
+        });
+
+        const display = document.getElementById('json-display');
+        if(display) display.textContent = JSON.stringify(connections, null, 2);
+    }
+
+    // --- โค้ดส่วนนาฬิกา และ เกจ (เหมือนเดิมของคุณ) ---
+    const clockElement = document.getElementById('digital-clock');
+    function updateClock() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    const gaugeFill = document.querySelector('.gauge-fill');
+    const gaugeText = document.getElementById('gauge-text');
+    const circumference = 282.7433388230814;
+    function updateGauge() {
+      const randomNumber = Math.floor(Math.random() * 101);
+      const dashoffset = circumference * (1 - randomNumber / 100);
+      gaugeFill.style.strokeDashoffset = dashoffset;
+      gaugeText.textContent = `${randomNumber}%`;
+    }
+    gaugeFill.style.strokeDasharray = `${circumference} ${circumference}`;
+    setInterval(updateGauge, 2000);
+    updateGauge();
+
+    const resetButton = document.getElementById('reset-button');
+    resetButton.addEventListener('click', () => {
+      localStorage.clear();
+      window.location.reload();
+    });
+
+    // --- ส่วนที่ปรับปรุง: Drag, Snap และ Connect ---
+    const widgets = document.querySelectorAll('.widget');
+    const SNAP_THRESHOLD = 20; // ระยะห่างที่จะให้ดูดติดกัน (พิกเซล)
+
+    widgets.forEach(widget => {
+      const widgetId = widget.id;
+      const header = widget.querySelector('.widget-header');
+      
+      // โหลดตำแหน่งและสถานะสีจาก LocalStorage
+      const savedPosition = localStorage.getItem(`widgetPosition_${widgetId}`);
+      if (savedPosition) {
+        const data = JSON.parse(savedPosition);
+        widget.style.top = `${data.top}px`;
+        widget.style.left = `${data.left}px`;
+        if(data.isConnected) header.classList.add('connected');
+      }
+
+      let isDragging = false;
+      let offsetX, offsetY;
+
+      const startDrag = (e) => {
+        isDragging = true;
+        widget.classList.add('dragging');
+        widget.style.zIndex = 1000; // เอาตัวที่ลากไว้บนสุด
+        const touch = e.touches ? e.touches[0] : e;
+        offsetX = touch.clientX - widget.getBoundingClientRect().left;
+        offsetY = touch.clientY - widget.getBoundingClientRect().top;
+      };
+
+      // const doDrag = (e) => {
+      //   if (!isDragging) return;
+      //   e.preventDefault();
+      //   const touch = e.touches ? e.touches[0] : e;
+      //   let newX = touch.clientX - offsetX;
+      //   let newY = touch.clientY - offsetY;
+
+      //   // ตรวจสอบการ Snap กับวิดเจ็ตตัวอื่นๆ
+      //   header.classList.remove('connected'); // รีเซ็ตสีก่อนตรวจสอบใหม่
+        
+      //   widgets.forEach(other => {
+      //     if (other === widget) return;
+
+      //     const r1 = widget.getBoundingClientRect();
+      //     const r2 = other.getBoundingClientRect();
+
+      //     // ตรวจสอบว่าอยู่ใกล้ขอบล่างของตัวอื่นหรือไม่
+      //     const nearBottom = Math.abs(newY - (r2.bottom + window.scrollY)) < SNAP_THRESHOLD;
+      //     const alignLeft = Math.abs(newX - (r2.left + window.scrollX)) < SNAP_THRESHOLD;
+
+      //     if (nearBottom && alignLeft) {
+      //       newY = r2.bottom + window.scrollY;
+      //       newX = r2.left + window.scrollX;
+      //       header.classList.add('connected'); // เปลี่ยนเป็นสีส้ม
+      //     }
+      //   });
+
+      //   widget.style.left = `${newX}px`;
+      //   widget.style.top = `${newY}px`;
+      // };
+
+      // const stopDrag = () => {
+      //   if (isDragging) {
+      //     isDragging = false;
+      //     widget.classList.remove('dragging');
+      //     widget.style.zIndex = "";
+          
+      //     const isConnected = header.classList.contains('connected');
+      //     const newPosition = {
+      //       top: parseFloat(widget.style.top),
+      //       left: parseFloat(widget.style.left),
+      //       isConnected: isConnected
+      //     };
+      //     localStorage.setItem(`widgetPosition_${widgetId}`, JSON.stringify(newPosition));
+      //   }
+      // };
+
+
+      const doDrag = (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const touch = e.touches ? e.touches[0] : e;
+        let newX = touch.clientX - offsetX;
+        let newY = touch.clientY - offsetY;
+
+        header.classList.remove('connected'); // รีเซ็ตสีก่อน
+        
+        widgets.forEach(other => {
+          if (other === widget) return;
+          const r2 = other.getBoundingClientRect();
+
+          const nearBottom = Math.abs(newY - (r2.bottom + window.scrollY)) < SNAP_THRESHOLD;
+          const alignLeft = Math.abs(newX - (r2.left + window.scrollX)) < SNAP_THRESHOLD;
+
+          if (nearBottom && alignLeft) {
+            newY = r2.bottom + window.scrollY;
+            newX = r2.left + window.scrollX;
+            header.classList.add('connected');
+          }
+        });
+
+        widget.style.left = `${newX}px`;
+        widget.style.top = `${newY}px`;
+        
+        updateConnectionsJSON(); // <-- เพิ่มบรรทัดนี้: อัปเดต JSON ขณะลาก
+      };
+
+      const stopDrag = () => {
+        if (isDragging) {
+          isDragging = false;
+          widget.classList.remove('dragging');
+          widget.style.zIndex = "";
+          
+          const isConnected = header.classList.contains('connected');
+          const newPosition = {
+            top: parseFloat(widget.style.top),
+            left: parseFloat(widget.style.left),
+            isConnected: isConnected
+          };
+          localStorage.setItem(`widgetPosition_${widgetId}`, JSON.stringify(newPosition));
+          
+          updateConnectionsJSON(); // <-- เพิ่มบรรทัดนี้: อัปเดต JSON เมื่อวาง
+        }
+      };
+
+      header.addEventListener('mousedown', startDrag);
+      header.addEventListener('touchstart', startDrag, {passive: false});
+      document.addEventListener('mousemove', doDrag);
+      document.addEventListener('touchmove', doDrag, {passive: false});
+      document.addEventListener('mouseup', stopDrag);
+      document.addEventListener('touchend', stopDrag);
+    });
+}); 
 </script>
 
+<script>
+// --- Timer Widget Logic ---
+    const timerInput = document.getElementById('timer-input');
+    const timerDisplay = document.getElementById('timer-display');
+    const btnPlus = document.getElementById('timer-plus');
+    const btnMinus = document.getElementById('timer-minus');
+
+    function formatTime(sec) {
+      const s = String(sec).padStart(2, '0');
+      return `00:${s}`;
+    }
+
+    function updateTimerDisplay() {
+      let val = parseInt(timerInput.value);
+      if (val > 60) val = 60;
+      if (val < 0 || isNaN(val)) val = 0;
+      timerInput.value = val;
+      timerDisplay.textContent = formatTime(val);
+    }
+
+    btnPlus.addEventListener('click', () => {
+      let current = parseInt(timerInput.value);
+      if (current < 60) {
+        timerInput.value = current + 1;
+        updateTimerDisplay();
+      }
+    });
+
+    btnMinus.addEventListener('click', () => {
+      let current = parseInt(timerInput.value);
+      if (current > 0) {
+        timerInput.value = current - 1;
+        updateTimerDisplay();
+      }
+    });
+
+    timerInput.addEventListener('input', updateTimerDisplay);
+
+    // เรียกครั้งแรกเพื่อให้แสดงผลตำแหน่งเริ่มต้นของ widget6
+    const w6 = document.getElementById('widget6');
+    if (!localStorage.getItem('widgetPosition_widget6')) {
+        w6.style.top = '350px';
+        w6.style.left = '50px';
+    }
+
+</script>
+
+<div id="json-monitor" style="position:fixed; bottom:20px; left:20px; background:rgba(0,0,0,0.8); color:#0f0; padding:15px; border-radius:8px; border:1px solid #0f0; font-family:monospace; font-size:12px; max-width:300px; pointer-events:none; z-index:9999;">
+  <strong>Connection Path (JSON):</strong>
+  <pre id="json-display" style="margin-top:10px; white-space:pre-wrap;">{}</pre>
+</div>
 </body>
 </html>

@@ -2,8 +2,8 @@
   "name": "coap-nodejs",
   "version": "1.0.0",
   "main": "coap.js",
-    "scripts": {
-    "start": "concurrently \"node coap.js\""
+  "scripts": {
+    "start": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
@@ -13,7 +13,10 @@
   "dependencies": {
     "coap": "^0.26.0",
     "concurrently": "^9.2.1",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "ffmpeg-static": "^5.3.0",
+    "modbus-serial": "^8.0.23",
+    "mqtt": "^5.14.1"
   },
   "devDependencies": {
     "cors": "^2.8.5",

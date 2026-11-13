@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Modbus Reader</title>
+<style>
+body {
+font-family: Arial, sans-serif;
+}
+#result {
+margin-top: 20px;
+font-size: 18px;
+}
+.register {
+margin-bottom: 10px;
+}
+.status {
+color: red;
+font-weight: bold;
+}
+</style>
+</head>
+<body>
+<h1>Modbus Reader</h1>
+<button id="read-button">อ่านค่า Modbus</button>
+<div id="result"></div>
+
+<button id="write-button">เขียนค่า Modbus</button>
+<input id="write-value" type="text" placeholder="123">
+<input id="write-address" type="number" placeholder="699">
+
+<script>
+const writeButton = document.getElementById('write-button');
+const writeValueInput = document.getElementById('write-value');
+const writeAddressInput = document.getElementById('write-address');
+    writeButton.addEventListener('click', async () => {
+      try {
+        const value = writeValueInput.value;
+        const address = parseInt(writeAddressInput.value);
+        if (isNaN(address)) {
+          alert('กรุณากรอก Address ที่ถูกต้อง');
+          return;
+        }
+        const response = await fetch('http://localhost:3000/write-modbus', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ value, address })
+        });
+        const data = await response.json();
+        if (data.success) {
+          alert('เขียนค่า Modbus สำเร็จ');
+        } else {
+          alert('เกิดข้อผิดพลาด: ' + data.error);
+        }
+      } catch (e) {
+        console.error(e);
+        alert('เกิดข้อผิดพลาด: ' + e.message);
+      }
+    });
+</script>
+
+<script>
+const readButton = document.getElementById('read-button');
+const resultDiv = document.getElementById('result');
+
+const statusMap = {
+0: 'INIT',
+1: 'PRE_CRANK',
+2: 'STARTING',
+3: 'RUNNING',
+4: 'PRE_COOLDOWN',
+5: 'COOLDOWN',
+6: 'STOPPING',
+7: 'STOPPED',
+8: 'IDLING',
+};
+
+const engineControlSwitchPositionMap = {
+0: 'STOP',
+1: 'AUTO',
+2: 'RUN',
+};
+
+const booleanMap = {
+0: 'FALSE',
+1: 'TRUE',
+};
+
+let intervalId = null;
+
+readButton.addEventListener('click', async () => {
+if (intervalId === null) {
+intervalId = setInterval(async () => {
+try {
+const response = await fetch('http://localhost:3000/read-modbus');
+const data = await response.json();
+resultDiv.innerHTML = '';
+data.forEach((register) => {
+const registerElement = document.createElement('div');
+registerElement.className = 'register';
+if (register.name === 'Automatic Start/Stop State') {
+const status = statusMap[register.value];
+registerElement.innerHTML = `${register.name}: <span class="status">${register.value} - ${status}</span>`;
+} else if (register.name === 'Engine Control Switch Position') {
+const position = engineControlSwitchPositionMap[register.value];
+registerElement.innerHTML = `${register.name}: <span class="status">${register.value} - ${position}</span>`;
+} else if (register.name === 'Auto Start/Stop Fuel Control Enabled ') {
+const enabled = booleanMap[register.value];
+registerElement.innerHTML = `${register.name}: <span class="status">${register.value} - ${enabled}</span>`;
+} else {
+registerElement.innerText = `${register.name}: ${register.value}`;
+}
+resultDiv.appendChild(registerElement);
+});
+} catch (e) {
+console.error(e);
+resultDiv.innerText = `เกิดข้อผิดพลาด: ${e.message}`;
+}
+}, 1000);
+readButton.innerText = 'Stop การอ่าน';
+} else {
+clearInterval(intervalId);
+intervalId = null;
+readButton.innerText = 'อ่านค่า Modbus';
+}
+});
+</script>
+</body>
+</html>

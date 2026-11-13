@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Farm Pro Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; }
+        .mono { font-family: 'Share Tech Mono', monospace; }
+        .widget { touch-action: none; user-select: none; position: absolute; min-width: 280px; }
+        .widget-header { cursor: grab; }
+        .widget-header:active { cursor: grabbing; }
+        /* สไตล์หลอดไฟ */
+        #led-indicator { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="text-slate-200 min-h-screen p-8 overflow-hidden">
+
+    <div class="fixed bottom-6 right-6 z-50 flex gap-2">
+        <button id="reset-button" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg backdrop-blur-md">
+            รีเซ็ตตำแหน่งหน้าต่าง
+        </button>
+    </div>
+
+    <div id="dashboard-container" class="relative w-full h-full">
+
+        <div id="w-message" class="widget bg-slate-800/50 backdrop-blur-xl border border-slate-700 shadow-2xl rounded-2xl overflow-hidden">
+    <div class="widget-header bg-slate-800/80 px-4 py-2 border-b border-slate-700 flex justify-between items-center">
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">System Message</span>
+        <div id="msg-dot" class="w-2 h-2 rounded-full bg-slate-600"></div>
+    </div>
+    <div class="p-6">
+        <div class="flex items-start gap-3">
+            <div class="mt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                </svg>
+            </div>
+            <div id="mqtt-message" class="mono text-lg text-emerald-100 leading-tight break-words min-h-[3rem] w-[220px]">
+                Waiting for message...
+            </div>
+        </div>
+        <div class="mt-4 text-[10px] text-slate-500 uppercase tracking-widest border-t border-slate-700/50 pt-2">
+            Topic: message
+        </div>
+    </div>
+</div>
+        
+        <div id="w-clock" class="widget bg-slate-800/50 backdrop-blur-xl border border-slate-700 shadow-2xl rounded-2xl overflow-hidden">
+            <div class="widget-header bg-slate-800/80 px-4 py-2 border-b border-slate-700 flex justify-between items-center">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Time & System</span>
+                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            </div>
+            <div class="p-6 text-center">
+                <div id="digital-clock" class="mono text-4xl text-emerald-400 font-bold">00:00:00</div>
+            </div>
+        </div>
+
+        <div id="w-temp" class="widget bg-slate-800/50 backdrop-blur-xl border border-slate-700 shadow-2xl rounded-2xl overflow-hidden">
+            <div class="widget-header bg-slate-800/80 px-4 py-2 border-b border-slate-700">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Temperature</span>
+            </div>
+            <div class="p-6 flex flex-col items-center">
+                <div class="flex items-baseline">
+                    <span id="mqtt-temp" class="mono text-6xl text-rose-500">--</span>
+                    <span class="text-2xl text-slate-500 ml-2">°C</span>
+                </div>
+                <div class="w-full bg-slate-700 h-1.5 mt-4 rounded-full overflow-hidden">
+                    <div id="temp-bar" class="bg-rose-500 h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="w-humid" class="widget bg-slate-800/50 backdrop-blur-xl border border-slate-700 shadow-2xl rounded-2xl overflow-hidden">
+            <div class="widget-header bg-slate-800/80 px-4 py-2 border-b border-slate-700">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Humidity</span>
+            </div>
+            <div class="p-6 flex flex-col items-center">
+                <div class="flex items-baseline">
+                    <span id="mqtt-humid" class="mono text-6xl text-sky-400">--</span>
+                    <span class="text-2xl text-slate-500 ml-2">%</span>
+                </div>
+                <div class="w-full bg-slate-700 h-1.5 mt-4 rounded-full overflow-hidden">
+                    <div id="humid-bar" class="bg-sky-400 h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        
+      
+
+
+
+        
+        
+
+
+        
+
+        <div id="w-led" class="widget bg-slate-800/50 backdrop-blur-xl border border-slate-700 shadow-2xl rounded-2xl overflow-hidden">
+            <div class="widget-header bg-slate-800/80 px-4 py-2 border-b border-slate-700">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">LED Status & Control</span>
+            </div>
+            <div class="p-6 flex flex-col items-center">
+                <div id="led-indicator" class="w-16 h-16 rounded-full bg-slate-900 border-4 border-slate-700 shadow-inner mb-4"></div>
+                <div id="led-status" class="text-sm font-medium mb-6 text-slate-500 uppercase">Offline</div>
+                <div class="flex gap-3">
+                    <button onclick="updateLED(1)" class="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold transition-all shadow-lg active:scale-95">ON</button>
+                    <button onclick="updateLED(0)" class="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-all shadow-lg active:scale-95">OFF</button>
+                </div>
+                <div id="led-control-status" class="text-[10px] mt-4 text-slate-500">Ready</div>
+            </div>
+        </div>        
+
+    </div>
+
+
+
+
+    <script>
+        // --- SSE & Logic ---
+        const temp = document.getElementById('mqtt-temp');
+        const hum = document.getElementById('mqtt-humid');
+        const ledInd = document.getElementById('led-indicator');
+        const ledStat = document.getElementById('led-status');
+        const tBar = document.getElementById('temp-bar');
+        const hBar = document.getElementById('humid-bar');
+
+        const msgDisplay = document.getElementById('mqtt-message');     
+        const msgDot = document.getElementById('msg-dot');
+
+
+        if(window.EventSource){
+            const sse = new EventSource('/events');
+            sse.onmessage = e => {
+                try {
+                    const d = JSON.parse(e.data);
+                    if(d.Message) {
+                          msgDisplay.textContent = d.Message;
+                            msgDot.className = 'w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981] animate-pulse';
+                            msgDisplay.classList.add('text-emerald-400');
+                            setTimeout(() => {
+                                msgDot.className = 'w-2 h-2 rounded-full bg-slate-600';
+                                msgDisplay.classList.remove('text-emerald-400');
+                            }, 2000);
+                        }
+                   
+                    if(d.Temp) {
+                        temp.textContent = d.Temp;
+                        tBar.style.width = Math.min(d.Temp, 100) + '%';
+                    }
+                    if(d.Humid) {
+                        hum.textContent = d.Humid;
+                        hBar.style.width = Math.min(d.Humid, 100) + '%';
+                    }
+                    if(d.MqttLED === "ON") {
+                        ledInd.className = 'w-16 h-16 rounded-full border-4 border-emerald-400 bg-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.6)]';
+                        ledStat.textContent = 'Active';
+                        ledStat.className = 'text-sm font-medium mb-6 text-emerald-400 uppercase';
+                    }     
+                    
+                    
+                    else {
+                        ledInd.className = 'w-16 h-16 rounded-full bg-slate-900 border-4 border-slate-700 shadow-inner';
+                        ledStat.textContent = 'Inactive';
+                        ledStat.className = 'text-sm font-medium mb-6 text-slate-500 uppercase';
+                    }
+                } catch(err) { console.error(err); }
+            };
+            sse.onerror = () => { ledStat.textContent = 'Connection Lost'; ledStat.classList.add('text-rose-500'); };
+        }
+
+        function updateLED(v) {
+            const status = document.getElementById('led-control-status');
+            status.textContent = 'Sending...';
+            fetch('/events/control/led', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({led:v})
+            })
+            .then(r => r.json())
+            .then(s => { status.textContent = 'Last command: ' + (v===1?'ON':'OFF'); })
+            .catch(e => { status.textContent = 'Network Error'; });
+        }
+
+        // --- Draggable Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Clock
+            setInterval(() => {
+                document.getElementById('digital-clock').textContent = new Date().toLocaleTimeString();
+            }, 1000);
+
+            // Reset
+            document.getElementById('reset-button').onclick = () => {
+                localStorage.clear();
+                location.reload();
+            };
+
+            const widgets = document.querySelectorAll('.widget');
+            widgets.forEach(w => {
+                const id = w.id;
+                const savedPos = localStorage.getItem(`pos_${id}`);
+                
+                if(savedPos) {
+                    const {t, l} = JSON.parse(savedPos);
+                    w.style.top = t + 'px';
+                    w.style.left = l + 'px';
+                } else {
+                    const def = {
+                        'w-clock': {t:40, l:40},
+                        'w-led': {t:40, l:360},
+                        'w-temp': {t:300, l:40},
+                        'w-humid': {t:300, l:360},
+                        'w-message': {t:40, l:680}
+                    };
+                    w.style.top = def[id].t + 'px';
+                    w.style.left = def[id].l + 'px';
+                }
+
+                const header = w.querySelector('.widget-header');
+                let isDragging = false;
+                let startX, startY, initialL, initialT;
+
+                header.addEventListener('pointerdown', e => {
+                    isDragging = true;
+                    w.style.zIndex = 100;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    initialL = parseInt(w.style.left);
+                    initialT = parseInt(w.style.top);
+                    header.setPointerCapture(e.pointerId);
+                });
+
+                document.addEventListener('pointermove', e => {
+                    if(!isDragging) return;
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    
+                    // ป้องกันการลากหลุดขอบจอด้านบนและซ้าย
+                    const newL = Math.max(0, initialL + dx);
+                    const newT = Math.max(0, initialT + dy);
+                    
+                    w.style.left = newL + 'px';
+                    w.style.top = newT + 'px';
+                });
+
+                document.addEventListener('pointerup', e => {
+                    if(!isDragging) return;
+                    isDragging = false;
+                    localStorage.setItem(`pos_${id}`, JSON.stringify({
+                        t: parseInt(w.style.top),
+                        l: parseInt(w.style.left)
+                    }));
+                });
+            });
+        });
+
+        
+    </script>
+</body>
+</html>
